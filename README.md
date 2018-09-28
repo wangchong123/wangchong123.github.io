@@ -1,37 +1,26 @@
-## Welcome to GitHub Pages
+mysql  limit用法：获取数据库中部分数据
 
-You can use the [editor on GitHub](https://github.com/wangchong123/wangchong123.github.io/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+  语法很简单：
+     1：select * from t limit ?,?;
+     第一个参数?为从哪行开始，第二个?为取几行；当第一个参数为0时可以省略，
+     select * from t limit ?;
+     即取前?行数据，类似sqlserver中的top语法。
+     需要注意的是以下语法已不能使用（以前可以获取？后的数据）：
+     select * from t limit ?,-1;
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/wangchong123/wangchong123.github.io/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+    百万级数据分页查询：
+      本文测试数据为300W。表结构为s1（id,name,gender,email）id为主键自增
+      先上例子
+        select * from s1 limit 100,10;可以看到耗时很短0.00，
+      再来一个
+        select * from s1 limit 1000000,10;耗时1s
+        select * from s1 limit 2000000,10;耗时1.77s!
+      可以看出随着偏移量的增大，耗时增加，几秒的响应速度对系统来说应该是灾难了，绝对不能接受！第二个参数的增大也会增加耗时
+      但limit一般用于分页，每页的size不会太大，所以不考虑这种情况。
+      那么怎么来减少耗时呢？下面就来说一下几种方案：
+      1、设置查找范围（id要为索引列）
+         select * from s1 where id > 2000000 limit 10;0.00s 效果还是满显著的
+         这样写更加适用实际开发：
+         select * from s1 where id >(page*size) limit size;
+         若id为连续的可用between...and:
+         SELECT * FROM s1 WHERE id BETWEEN 2000000 AND 2000010;0.00s so quickly
